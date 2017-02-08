@@ -68,16 +68,21 @@ func main() {
 }
 
 func Run(_ *cli.Context) error {
-	in := WalkFiles(opts.Source)
+	src, in := WalkFiles(opts.Source)
 	errs := make(chan error)
 
 	wg := &sync.WaitGroup{}
 	wg.Add(opts.Concurrency)
 
+	target, err := filepath.Abs(opts.Destination)
+	if err != nil {
+		return errors.Wrapf(err, "unable to determine path for destination, %v", opts.Destination)
+	}
+
 	for i := 0; i < opts.Concurrency; i++ {
 		go func(id int) {
 			defer wg.Done()
-			Start(id, in, errs)
+			Start(id, src, target, in, errs)
 		}(i)
 	}
 
@@ -93,11 +98,13 @@ func Run(_ *cli.Context) error {
 	return nil
 }
 
-func WalkFiles(root string) <-chan string {
+func WalkFiles(root string) (string, <-chan string) {
 	in := make(chan string)
 
 	dir, err := filepath.Abs(root)
 	check(err)
+
+	dirlen := len(dir) + 1
 
 	go func() {
 		defer close(in)
@@ -115,19 +122,19 @@ func WalkFiles(root string) <-chan string {
 				return nil
 			}
 
-			in <- path
+			in <- path[dirlen:]
 
 			return nil
 		})
 		check(err)
 	}()
 
-	return in
+	return dir, in
 }
 
-func Start(id int, in <-chan string, errs chan<- error) {
+func Start(id int, src, target string, in <-chan string, errs chan<- error) {
 	for path := range in {
-		err := RenderPDF(id, path)
+		err := RenderPDF(id, src, target, path)
 		if err != nil {
 			errs <- errors.Wrapf(err, "[%v] unable to render file, %v", id, path)
 			return
@@ -137,19 +144,20 @@ func Start(id int, in <-chan string, errs chan<- error) {
 	errs <- nil
 }
 
-func RenderPDF(id int, path string) error {
-
-	pdf := filepath.Base(strings.Replace(path, ".html", ".pdf", -1))
+func RenderPDF(id int, src, target, path string) error {
+	pdf := strings.Replace(path, ".html", ".pdf", -1)
 
 	args := []string{
 		"run",
 		"--rm",
 		"-v",
-		fmt.Sprintf("%v:/work", filepath.Dir(path)),
+		fmt.Sprintf("%v:/work", filepath.Dir(filepath.Join(src, path))),
+		"-v",
+		fmt.Sprintf("%v:/dest", filepath.Dir(filepath.Join(target, pdf))),
 		"savaki/genpdf:latest",
 		"html-pdf.js",
 		filepath.Base(path),
-		pdf,
+		fmt.Sprintf("/dest/%v", filepath.Base(pdf)),
 	}
 	if opts.Verbose {
 		fmt.Printf("[%2d] rendering %v\n", id, path)
@@ -157,6 +165,8 @@ func RenderPDF(id int, path string) error {
 	if opts.DryRun {
 		return nil
 	}
+
+	os.MkdirAll(filepath.Dir(filepath.Join(target, pdf)), 0755)
 
 	cmd := exec.Command("docker", args...)
 	cmd.Stdout = ioutil.Discard
