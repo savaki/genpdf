@@ -9,6 +9,7 @@ import (
 	"path/filepath"
 	"strings"
 	"sync"
+	"sync/atomic"
 
 	"github.com/pkg/errors"
 	"github.com/urfave/cli"
@@ -22,6 +23,7 @@ type Options struct {
 	Source      string
 	Destination string
 	Concurrency int
+	Tick        int
 	Verbose     bool
 	DryRun      bool
 }
@@ -33,6 +35,8 @@ func check(err error) {
 		log.Fatalln(err)
 	}
 }
+
+var counter int64
 
 func main() {
 	app := cli.NewApp()
@@ -55,6 +59,12 @@ func main() {
 			Usage:       "number of concurrent workers",
 			Value:       25,
 			Destination: &opts.Concurrency,
+		},
+		cli.IntFlag{
+			Name:        "tick",
+			Usage:       "print a . every N items",
+			Value:       250,
+			Destination: &opts.Tick,
 		},
 		cli.BoolFlag{
 			Name:        "verbose",
@@ -101,6 +111,10 @@ func Run(_ *cli.Context) error {
 	for err := range errs {
 		check(err)
 	}
+
+	fmt.Println("")
+	fmt.Println(counter, "PDF file(s) generated.")
+	fmt.Println("")
 
 	return nil
 }
@@ -152,6 +166,8 @@ func Start(id int, src, target string, in <-chan string, errs chan<- error) {
 }
 
 func PullImage() error {
+	defer fmt.Println("")
+
 	cmd := exec.Command("docker", "pull", IMAGE)
 	cmd.Stdout = os.Stdout
 	cmd.Stderr = os.Stderr
@@ -178,6 +194,10 @@ func RenderPDF(id int, src, target, path string) error {
 	}
 	if opts.DryRun {
 		return nil
+	}
+
+	if v := atomic.AddInt64(&counter, 1); v%int64(opts.Tick) == 0 {
+		fmt.Print(".")
 	}
 
 	os.MkdirAll(filepath.Dir(filepath.Join(target, pdf)), 0755)
