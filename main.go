@@ -113,6 +113,7 @@ func Run(_ *cli.Context) error {
 	}
 
 	fmt.Println("")
+	fmt.Println("")
 	fmt.Println(counter, "PDF file(s) generated.")
 	fmt.Println("")
 
@@ -125,7 +126,7 @@ func WalkFiles(root string) (string, <-chan string) {
 	dir, err := filepath.Abs(root)
 	check(err)
 
-	dirlen := len(dir) + 1
+	dirLen := len(dir) + 1
 
 	go func() {
 		defer close(in)
@@ -143,7 +144,7 @@ func WalkFiles(root string) (string, <-chan string) {
 				return nil
 			}
 
-			in <- path[dirlen:]
+			in <- path[dirLen:]
 
 			return nil
 		})
