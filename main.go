@@ -14,6 +14,10 @@ import (
 	"github.com/urfave/cli"
 )
 
+const (
+	IMAGE = "savaki/genpdf:latest"
+)
+
 type Options struct {
 	Source      string
 	Destination string
@@ -68,6 +72,9 @@ func main() {
 }
 
 func Run(_ *cli.Context) error {
+	err := PullImage()
+	check(err)
+
 	src, in := WalkFiles(opts.Source)
 	errs := make(chan error)
 
@@ -144,6 +151,13 @@ func Start(id int, src, target string, in <-chan string, errs chan<- error) {
 	errs <- nil
 }
 
+func PullImage() error {
+	cmd := exec.Command("docker", "pull", IMAGE)
+	cmd.Stdout = os.Stdout
+	cmd.Stderr = os.Stderr
+	return cmd.Run()
+}
+
 func RenderPDF(id int, src, target, path string) error {
 	pdf := strings.Replace(path, ".html", ".pdf", -1)
 
@@ -154,7 +168,7 @@ func RenderPDF(id int, src, target, path string) error {
 		fmt.Sprintf("%v:/work", filepath.Dir(filepath.Join(src, path))),
 		"-v",
 		fmt.Sprintf("%v:/dest", filepath.Dir(filepath.Join(target, pdf))),
-		"savaki/genpdf:latest",
+		IMAGE,
 		"html-pdf.js",
 		filepath.Base(path),
 		fmt.Sprintf("/dest/%v", filepath.Base(pdf)),
