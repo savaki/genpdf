@@ -1,0 +1,20 @@
+{
+	"ImportPath": "github.com/savaki/genpdf",
+	"GoVersion": "go1.7",
+	"GodepVersion": "v79",
+	"Packages": [
+		"./..."
+	],
+	"Deps": [
+		{
+			"ImportPath": "github.com/pkg/errors",
+			"Comment": "v0.8.0-2-g248dadf",
+			"Rev": "248dadf4e9068a0b3e79f02ed0a610d935de5302"
+		},
+		{
+			"ImportPath": "github.com/urfave/cli",
+			"Comment": "v1.19.1-21-g347a988",
+			"Rev": "347a9884a87374d000eec7e6445a34487c1f4a2b"
+		}
+	]
+}
