@@ -26,7 +26,7 @@ GLOBAL OPTIONS:
 ## Example
 
 ```
-Matts-MacBook-Pro-2:genpdf matt$ go run main.go --src . --verbose
+$ go run main.go --src . --verbose
 [ 0] rendering /Users/matt/src/github.com/savaki/genpdf/sample.html
 [ 9] rendering /Users/matt/src/github.com/savaki/genpdf/statement.html
 ```
