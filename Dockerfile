@@ -10,4 +10,6 @@ RUN npm install -g html-pdf
 ADD html-pdf.js /usr/local/lib/node_modules/html-pdf/bin/html-pdf.js
 RUN ln -s /usr/local/lib/node_modules/html-pdf/bin/html-pdf.js /usr/local/bin
 
+RUN mkdir -p /work
+WORKDIR /work
 
